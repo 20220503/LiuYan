@@ -418,7 +418,7 @@
     // import { createClient } from '@supabase/supabase-js';
 
     // 配置 Supabase
-    const supabase = new SupabaseClient(
+    const supabase = supabase.createClient(
       'https://apvxjmeumvwwpazckfyb.supabase.co', // 从 Supabase 项目设置中获取
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFwdnhqbWV1bXZ3d3BhemNrZnliIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE5NjkxNDMsImV4cCI6MjA2NzU0NTE0M30.0gZpnem250kYRQNNEo5MvvZoOhHAsmHJWVltJQrNU8E'      // 从 Supabase 项目设置中获取
     );
