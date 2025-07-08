@@ -69,7 +69,7 @@
     // 立即执行函数封装整个应用逻辑
     (async function() {
       // 配置 Supabase（替换成你自己的项目信息）
-      const supabase = supabase.createClient(
+      const supabase = window.supabase.createClient(
         'https://apvxjmeumvwwpazckfyb.supabase.co', 
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFwdnhqbWV1bXZ3d3BhemNrZnliIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE5NjkxNDMsImV4cCI6MjA2NzU0NTE0M30.0gZpnem250kYRQNNEo5MvvZoOhHAsmHJWVltJQrNU8E'
       );
