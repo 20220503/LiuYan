@@ -141,7 +141,7 @@
           
           if (error) throw error;
 
-          messages = data;
+          messages = data || [];
           totalPages = Math.ceil(count / pageSize);
           renderMessages();
           updatePagination();
