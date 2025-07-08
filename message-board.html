@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- Tailwind CSS CDN（生产环境建议本地安装） -->
+  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Supabase JS SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
@@ -66,232 +66,235 @@
   </template>
 
   <script>
-    // 配置 Supabase（替换成你自己的项目信息）
-    const supabase = supabase.createClient(
-      'https://apvxjmeumvwwpazckfyb.supabase.co', 
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFwdnhqbWV1bXZ3d3BhemNrZnliIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE5NjkxNDMsImV4cCI6MjA2NzU0NTE0M30.0gZpnem250kYRQNNEo5MvvZoOhHAsmHJWVltJQrNU8E'
-    );
+    // 立即执行函数封装整个应用逻辑
+    (async function() {
+      // 配置 Supabase（替换成你自己的项目信息）
+      const supabase = supabase.createClient(
+        'https://apvxjmeumvwwpazckfyb.supabase.co', 
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFwdnhqbWV1bXZ3d3BhemNrZnliIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE5NjkxNDMsImV4cCI6MjA2NzU0NTE0M30.0gZpnem250kYRQNNEo5MvvZoOhHAsmHJWVltJQrNU8E'
+      );
 
-    // 全局变量
-    let messages = [];
-    let currentPage = 1;
-    const pageSize = 5; // 每页显示 5 条
-    let totalPages = 1;
+      // 全局变量
+      let messages = [];
+      let currentPage = 1;
+      const pageSize = 5; // 每页显示 5 条
+      let totalPages = 1;
 
-    // DOM 元素
-    const messageForm = document.getElementById('messageForm');
-    const messageList = document.getElementById('messageList');
-    const prevPageBtn = document.getElementById('prevPage');
-    const nextPageBtn = document.getElementById('nextPage');
-    const pageInfo = document.getElementById('pageInfo');
+      // DOM 元素
+      const messageForm = document.getElementById('messageForm');
+      const messageList = document.getElementById('messageList');
+      const prevPageBtn = document.getElementById('prevPage');
+      const nextPageBtn = document.getElementById('nextPage');
+      const pageInfo = document.getElementById('pageInfo');
 
-    // 初始化
-    init();
+      // 初始化
+      await init();
 
-    async function init() {
-      await loadMessages();
-      bindEvents();
-    }
-
-    // 绑定事件
-    function bindEvents() {
-      // 发布留言
-      messageForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const name = document.getElementById('name').value;
-        const content = document.getElementById('content').value;
-        
-        const { data, error } = await supabase
-          .from('messages')
-          .insert([{ name, content, upvotes: 0, downvotes: 0, timestamp: new Date().toISOString() }])
-          .select();
-        
-        if (error) return alert('发布失败：' + error.message);
-        messages.unshift(data[0]);
-        renderMessages();
-        messageForm.reset();
-      });
-
-      // 分页按钮
-      prevPageBtn.addEventListener('click', () => {
-        if (currentPage > 1) {
-          currentPage--;
-          loadMessages();
-        }
-      });
-
-      nextPageBtn.addEventListener('click', () => {
-        if (currentPage < totalPages) {
-          currentPage++;
-          loadMessages();
-        }
-      });
-    }
-
-    // 加载留言（带分页）
-    async function loadMessages() {
-      try {
-        const { data, count, error } = await supabase
-          .from('messages')
-          .select('*', { count: 'exact', head: true })
-          .order('timestamp', { ascending: false })
-          .range((currentPage - 1) * pageSize, currentPage * pageSize - 1);
-        
-        if (error) throw error;
-
-        messages = data;
-        totalPages = Math.ceil(count / pageSize);
-        renderMessages();
-        updatePagination();
-      } catch (error) {
-        console.error('加载失败：', error);
-        alert('加载留言失败，请重试');
+      async function init() {
+        await loadMessages();
+        bindEvents();
       }
-    }
 
-    // 渲染留言列表
-    function renderMessages() {
-      messageList.innerHTML = messages.map((msg, index) => `
-        <div class="bg-white p-4 rounded shadow relative">
-          <div class="flex justify-between items-start">
-            <div>
-              <h3 class="text-lg font-bold">${msg.name}</h3>
-              <p class="text-gray-600 text-sm mb-2">
-                发布于：${formatTime(msg.timestamp)}
-              </p>
-              <p class="text-gray-700">${msg.content}</p>
-            </div>
-            <div class="flex flex-col items-center">
-              <button class="vote upvote ${msg.upvotes ? 'text-blue-500' : ''}" data-msg-id="${msg.id}" data-type="up">
-                👍 ${msg.upvotes || 0}
-              </button>
-              <button class="vote downvote ${msg.downvotes ? 'text-red-500' : ''}" data-msg-id="${msg.id}" data-type="down">
-                👎 ${msg.downvotes || 0}
-              </button>
-            </div>
-          </div>
-
-          <!-- 操作按钮 -->
-          <div class="absolute top-2 right-2 flex space-x-2">
-            <button class="reply-btn text-blue-500 text-sm hover:underline" data-msg-id="${msg.id}">回复</button>
-            <button class="delete-btn text-red-500 text-sm hover:underline" data-msg-id="${msg.id}">删除</button>
-          </div>
-
-          <!-- 回复列表 -->
-          <div class="replies mt-4 space-y-2" data-msg-id="${msg.id}">
-            ${msg.replies?.map(reply => `
-              <div class="bg-gray-50 p-2 rounded">
-                <p class="text-sm text-gray-700"><strong>${reply.name}：</strong>${reply.content}</p>
-                <p class="text-xs text-gray-500">${formatTime(reply.timestamp)}</p>
-              </div>
-            `).join('') || ''}
-          </div>
-        </div>
-      `).join('');
-
-      // 绑定动态按钮事件
-      bindDynamicEvents();
-    }
-
-    // 绑定动态生成元素的事件
-    function bindDynamicEvents() {
-      // 点赞/点踩
-      document.querySelectorAll('.vote').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-          const msgId = e.target.dataset.msgId;
-          const type = e.target.dataset.type;
-          const msg = messages.find(m => m.id === msgId);
+      // 绑定事件
+      function bindEvents() {
+        // 发布留言
+        messageForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const name = document.getElementById('name').value;
+          const content = document.getElementById('content').value;
           
-          // 更新本地状态
-          if (type === 'up') {
-            msg.upvotes = (msg.upvotes || 0) + 1;
-          } else {
-            msg.downvotes = (msg.downvotes || 0) + 1;
-          }
-
-          // 更新数据库
-          await supabase
+          const { data, error } = await supabase
             .from('messages')
-            .update({ [type]: msg[type] })
-            .eq('id', msgId);
+            .insert([{ name, content, upvotes: 0, downvotes: 0, timestamp: new Date().toISOString() }])
+            .select();
           
-          renderMessages(); // 重新渲染
+          if (error) return alert('发布失败：' + error.message);
+          messages.unshift(data[0]);
+          renderMessages();
+          messageForm.reset();
         });
-      });
 
-      // 回复按钮
-      document.querySelectorAll('.reply-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          showReplyModal(btn.dataset.msgId);
+        // 分页按钮
+        prevPageBtn.addEventListener('click', () => {
+          if (currentPage > 1) {
+            currentPage--;
+            loadMessages();
+          }
         });
-      });
 
-      // 删除按钮
-      document.querySelectorAll('.delete-btn').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          if (confirm('确定删除这条留言吗？')) {
+        nextPageBtn.addEventListener('click', () => {
+          if (currentPage < totalPages) {
+            currentPage++;
+            loadMessages();
+          }
+        });
+      }
+
+      // 加载留言（带分页）
+      async function loadMessages() {
+        try {
+          const { data, count, error } = await supabase
+            .from('messages')
+            .select('*', { count: 'exact', head: true })
+            .order('timestamp', { ascending: false })
+            .range((currentPage - 1) * pageSize, currentPage * pageSize - 1);
+          
+          if (error) throw error;
+
+          messages = data;
+          totalPages = Math.ceil(count / pageSize);
+          renderMessages();
+          updatePagination();
+        } catch (error) {
+          console.error('加载失败：', error);
+          alert('加载留言失败，请重试');
+        }
+      }
+
+      // 渲染留言列表
+      function renderMessages() {
+        messageList.innerHTML = messages.map((msg, index) => `
+          <div class="bg-white p-4 rounded shadow relative">
+            <div class="flex justify-between items-start">
+              <div>
+                <h3 class="text-lg font-bold">${msg.name}</h3>
+                <p class="text-gray-600 text-sm mb-2">
+                  发布于：${formatTime(msg.timestamp)}
+                </p>
+                <p class="text-gray-700">${msg.content}</p>
+              </div>
+              <div class="flex flex-col items-center">
+                <button class="vote upvote ${msg.upvotes ? 'text-blue-500' : ''}" data-msg-id="${msg.id}" data-type="up">
+                  👍 ${msg.upvotes || 0}
+                </button>
+                <button class="vote downvote ${msg.downvotes ? 'text-red-500' : ''}" data-msg-id="${msg.id}" data-type="down">
+                  👎 ${msg.downvotes || 0}
+                </button>
+              </div>
+            </div>
+
+            <!-- 操作按钮 -->
+            <div class="absolute top-2 right-2 flex space-x-2">
+              <button class="reply-btn text-blue-500 text-sm hover:underline" data-msg-id="${msg.id}">回复</button>
+              <button class="delete-btn text-red-500 text-sm hover:underline" data-msg-id="${msg.id}">删除</button>
+            </div>
+
+            <!-- 回复列表 -->
+            <div class="replies mt-4 space-y-2" data-msg-id="${msg.id}">
+              ${msg.replies?.map(reply => `
+                <div class="bg-gray-50 p-2 rounded">
+                  <p class="text-sm text-gray-700"><strong>${reply.name}：</strong>${reply.content}</p>
+                  <p class="text-xs text-gray-500">${formatTime(reply.timestamp)}</p>
+                </div>
+              `).join('') || ''}
+            </div>
+          </div>
+        `).join('');
+
+        // 绑定动态按钮事件
+        bindDynamicEvents();
+      }
+
+      // 绑定动态生成元素的事件
+      function bindDynamicEvents() {
+        // 点赞/点踩
+        document.querySelectorAll('.vote').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            const msgId = e.target.dataset.msgId;
+            const type = e.target.dataset.type;
+            const msg = messages.find(m => m.id === msgId);
+            
+            // 更新本地状态
+            if (type === 'up') {
+              msg.upvotes = (msg.upvotes || 0) + 1;
+            } else {
+              msg.downvotes = (msg.downvotes || 0) + 1;
+            }
+
+            // 更新数据库
             await supabase
               .from('messages')
-              .delete()
-              .eq('id', btn.dataset.msgId);
+              .update({ [type]: msg[type] })
+              .eq('id', msgId);
             
-            messages = messages.filter(m => m.id !== btn.dataset.msgId);
-            renderMessages();
-          }
+            renderMessages(); // 重新渲染
+          });
         });
-      });
-    }
 
-    // 显示回复弹窗
-    function showReplyModal(msgId) {
-      const template = document.getElementById('replyModalTemplate');
-      const modal = template.content.cloneNode(true);
-      
-      // 绑定取消按钮
-      modal.querySelector('.reply-cancel').addEventListener('click', () => {
-        modal.remove();
-      });
+        // 回复按钮
+        document.querySelectorAll('.reply-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            showReplyModal(btn.dataset.msgId);
+          });
+        });
 
-      // 绑定提交按钮
-      modal.querySelector('.reply-save').addEventListener('click', async () => {
-        const name = modal.querySelector('.reply-name').value;
-        const content = modal.querySelector('.reply-content').value;
+        // 删除按钮
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            if (confirm('确定删除这条留言吗？')) {
+              await supabase
+                .from('messages')
+                .delete()
+                .eq('id', btn.dataset.msgId);
+              
+              messages = messages.filter(m => m.id !== btn.dataset.msgId);
+              renderMessages();
+            }
+          });
+        });
+      }
+
+      // 显示回复弹窗
+      function showReplyModal(msgId) {
+        const template = document.getElementById('replyModalTemplate');
+        const modal = template.content.cloneNode(true);
         
-        const { data, error } = await supabase
-          .from('replies')
-          .insert([{ 
-            message_id: msgId, 
-            name, 
-            content, 
-            timestamp: new Date().toISOString() 
-          }])
-          .select();
-        
-        if (error) return alert('回复失败：' + error.message);
-        
-        // 更新本地留言的回复
-        const msg = messages.find(m => m.id === msgId);
-        if (!msg.replies) msg.replies = [];
-        msg.replies.push(data[0]);
-        
-        renderMessages();
-        modal.remove();
-      });
+        // 绑定取消按钮
+        modal.querySelector('.reply-cancel').addEventListener('click', () => {
+          modal.remove();
+        });
 
-      document.body.appendChild(modal);
-    }
+        // 绑定提交按钮
+        modal.querySelector('.reply-save').addEventListener('click', async () => {
+          const name = modal.querySelector('.reply-name').value;
+          const content = modal.querySelector('.reply-content').value;
+          
+          const { data, error } = await supabase
+            .from('replies')
+            .insert([{ 
+              message_id: msgId, 
+              name, 
+              content, 
+              timestamp: new Date().toISOString() 
+            }])
+            .select();
+          
+          if (error) return alert('回复失败：' + error.message);
+          
+          // 更新本地留言的回复
+          const msg = messages.find(m => m.id === msgId);
+          if (!msg.replies) msg.replies = [];
+          msg.replies.push(data[0]);
+          
+          renderMessages();
+          modal.remove();
+        });
 
-    // 更新分页状态
-    function updatePagination() {
-      prevPageBtn.disabled = currentPage === 1;
-      nextPageBtn.disabled = currentPage === totalPages;
-      pageInfo.textContent = `第 ${currentPage} 页 / 共 ${totalPages} 页`;
-    }
+        document.body.appendChild(modal);
+      }
 
-    // 时间格式化
-    function formatTime(timestamp) {
-      return new Date(timestamp).toLocaleString();
-    }
+      // 更新分页状态
+      function updatePagination() {
+        prevPageBtn.disabled = currentPage === 1;
+        nextPageBtn.disabled = currentPage === totalPages;
+        pageInfo.textContent = `第 ${currentPage} 页 / 共 ${totalPages} 页`;
+      }
+
+      // 时间格式化
+      function formatTime(timestamp) {
+        return new Date(timestamp).toLocaleString();
+      }
+    })(); // 立即执行函数结束
   </script>
 </body>
 </html>
